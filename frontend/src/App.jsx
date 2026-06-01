@@ -35,7 +35,7 @@ function App() {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5000/generate", {
+      const response = await fetch("https://contentcrafter-backend.onrender.com/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -51,7 +51,7 @@ function App() {
       const data = await response.json();
       console.log("AI RESPONSE:", data);
 
-      if (data.success) {
+      if (data.success && data.data) {
         setResult({
           linkedin: data.data.linkedin || "",
           twitter: Array.isArray(data.data.twitter) ? data.data.twitter : [],
@@ -72,6 +72,7 @@ function App() {
         setError(data.message || "Something went wrong.");
       }
     } catch (err) {
+      console.log(err);
       setError("Backend connection failed. Please check if backend is running.");
     }
 
@@ -492,7 +493,7 @@ function Score({ label, value }) {
   return (
     <div className="score-card">
       <span>{label}</span>
-      <strong>{value}/100</strong>
+      <strong>{value || 0}/100</strong>
     </div>
   );
 }
