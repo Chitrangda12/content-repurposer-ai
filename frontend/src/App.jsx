@@ -415,7 +415,9 @@ function App() {
 
                     <div className="hook-list">
                       {result.hooks.map((hook, index) => (
-                        <p key={index}>✨ {hook}</p>
+                        <p key={index}>
+                          ✨ {typeof hook === "string" ? hook : hook.text || hook.title || "Hook"}
+                        </p>
                       ))}
                     </div>
                   </div>
@@ -432,7 +434,9 @@ function App() {
 
                     <div className="hashtags">
                       {result.hashtags.map((tag, index) => (
-                        <span key={index}>{tag}</span>
+                        <span key={index}>
+                          {typeof tag === "string" ? tag : tag.text || tag.title || "#tag"}
+                        </span>
                       ))}
                     </div>
                   </div>
@@ -456,7 +460,11 @@ function App() {
 
                     <ul className="suggestions">
                       {result.suggestions.map((suggestion, index) => (
-                        <li key={index}>{suggestion}</li>
+                        <li key={index}>
+                          {typeof suggestion === "string"
+                            ? suggestion
+                            : `${suggestion.title || "Suggestion"}: ${suggestion.text || ""}`}
+                        </li>
                       ))}
                     </ul>
                   </div>
