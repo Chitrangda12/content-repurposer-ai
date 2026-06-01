@@ -189,6 +189,21 @@ function App() {
 
     return ` ${count} characters`;
   };
+
+  const renderText = (item) => {
+  if (!item) return "";
+
+  if (typeof item === "string") return item;
+
+  if (typeof item === "object") {
+    return (
+      item.text || item.title || item.caption || item.content || JSON.stringify(item)
+    );
+  }
+
+  return String(item);
+};
+
   return (
     <div className="app">
       <header className="hero">
@@ -367,10 +382,10 @@ function App() {
 
                     <div className="thread-list">
                       {result.twitter.map((tweet, index) => (
-                        <p key={index}>
-                          <strong>{index + 1}.</strong> {tweet}
-                        </p>
-                      ))}
+  <p key={index}>
+    <strong>{index + 1}.</strong> {renderText(tweet)}
+  </p>
+))}
                     </div>
                   </div>
                 )}
@@ -397,10 +412,10 @@ function App() {
 
                     <div className="thread-list">
                       {result.threads.map((post, index) => (
-                        <p key={index}>
-                          <strong>{index + 1}.</strong> {post}
-                        </p>
-                      ))}
+  <p key={index}>
+    <strong>{index + 1}.</strong> {renderText(post)}
+  </p>
+))}
                     </div>
                   </div>
                 )}
@@ -415,10 +430,8 @@ function App() {
 
                     <div className="hook-list">
                       {result.hooks.map((hook, index) => (
-                        <p key={index}>
-                          ✨ {typeof hook === "string" ? hook : hook.text || hook.title || "Hook"}
-                        </p>
-                      ))}
+  <p key={index}>✨ {renderText(hook)}</p>
+))}
                     </div>
                   </div>
                 )}
@@ -434,10 +447,8 @@ function App() {
 
                     <div className="hashtags">
                       {result.hashtags.map((tag, index) => (
-                        <span key={index}>
-                          {typeof tag === "string" ? tag : tag.text || tag.title || "#tag"}
-                        </span>
-                      ))}
+  <span key={index}>{renderText(tag)}</span>
+))}
                     </div>
                   </div>
                 )}
