@@ -15,12 +15,12 @@ const groq = new Groq({
 });
 
 app.get("/", (req, res) => {
-  res.send("Content Repurposer Backend is running");
+  res.send("ContentCrafter AI Backend is running");
 });
 
 app.post("/generate", async (req, res) => {
   try {
-    const { content, tone } = req.body;
+    const { content, tone, length, platforms } = req.body;
 
     if (!content || content.trim() === "") {
       return res.status(400).json({
@@ -29,30 +29,58 @@ app.post("/generate", async (req, res) => {
       });
     }
 
+    const selectedPlatforms =
+      platforms && platforms.length > 0
+        ? platforms.join(", ")
+        : "LinkedIn, Twitter/X, Instagram";
+
     const prompt = `
-You are an expert social media content strategist.
+You are an expert social media strategist and AI content repurposer.
 
-Convert the given content into platform-specific social media content.
-
-Tone: ${tone || "Professional"}
+Repurpose the given content ONLY for these selected platforms:
+${selectedPlatforms}
 
 Content:
 ${content}
 
-Return ONLY valid JSON in this exact format. Do not add markdown or extra explanation.
+Tone: ${tone || "Professional"}
+Length preference: ${length || "Medium"}
+
+STRICT RULES:
+1. Return ONLY valid JSON.
+2. Do NOT add markdown.
+3. Do NOT add explanation.
+4. Twitter/X content must go ONLY inside "twitter".
+5. Threads content must go ONLY inside "threads".
+6. If a platform is not selected, return an empty string or empty array for it.
+7. Always include all keys exactly as shown below.
+
+Return JSON in this exact structure:
 
 {
-  "linkedin": "A professional LinkedIn post",
-  "twitter": [
-    "Tweet 1",
-    "Tweet 2",
-    "Tweet 3",
-    "Tweet 4",
-    "Tweet 5"
-  ],
-  "instagram": "Instagram caption",
-  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5", "#tag6", "#tag7", "#tag8"]
+  "linkedin": "",
+  "twitter": [],
+  "instagram": "",
+  "threads": [],
+  "hooks": [],
+  "hashtags": [],
+  "scores": {
+    "readability": 0,
+    "engagement": 0,
+    "virality": 0
+  },
+  "suggestions": []
 }
+
+Generate:
+- LinkedIn: 1 polished post
+- Twitter/X: 5 tweets
+- Instagram: 1 caption
+- Threads: 3 short conversational posts
+- Hooks: 3 viral hooks
+- Hashtags: 8 hashtags
+- Scores: numbers between 0 and 100
+- Suggestions: 3 improvement suggestions
 `;
 
     const completion = await groq.chat.completions.create({
