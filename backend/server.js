@@ -32,31 +32,27 @@ app.post("/generate", async (req, res) => {
     const selectedPlatforms =
       platforms && platforms.length > 0
         ? platforms.join(", ")
-        : "LinkedIn, Twitter/X, Instagram";
+        : "LinkedIn, Twitter/X, Instagram, Threads";
 
     const prompt = `
-You are an expert social media strategist and AI content repurposer.
+You are an AI content repurposer.
 
-Repurpose the given content ONLY for these selected platforms:
-${selectedPlatforms}
+Convert the given content into social media content.
 
 Content:
 ${content}
 
 Tone: ${tone || "Professional"}
-Length preference: ${length || "Medium"}
+Length: ${length || "Medium"}
+Selected platforms: ${selectedPlatforms}
 
-STRICT RULES:
-1. Return ONLY valid JSON.
-2. Do NOT add markdown.
-3. Do NOT add explanation.
-4. Twitter/X content must go ONLY inside "twitter".
-5. Threads content must go ONLY inside "threads".
-6. If a platform is not selected, return an empty string or empty array for it.
-7. Always include all keys exactly as shown below.
-8. Do not use trailing commas in JSON arrays or objects.
+Return ONLY valid JSON.
+Do not use markdown.
+Do not use trailing commas.
+Do not return objects inside arrays.
+All array values must be strings only.
 
-Return JSON in this exact structure:
+Use exactly this JSON structure:
 
 {
   "linkedin": "",
@@ -72,57 +68,92 @@ Return JSON in this exact structure:
   },
   "suggestions": []
 }
-
-Generate:
-- LinkedIn: 1 polished post
-- Twitter/X: 5 tweets
-- Instagram: 1 caption
-- Threads: 3 short conversational posts
-- Hooks: 3 viral hooks
-- Hashtags: 8 hashtags
-- Scores: numbers between 0 and 100
-- Suggestions: 3 improvement suggestions
 `;
 
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.4,
     });
 
     let aiResponse = completion.choices[0].message.content.trim();
 
-aiResponse = aiResponse
-  .replace(/```json/g, "")
-  .replace(/```/g, "")
-  .trim();
+    aiResponse = aiResponse
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
-const firstBrace = aiResponse.indexOf("{");
-const lastBrace = aiResponse.lastIndexOf("}");
+    const firstBrace = aiResponse.indexOf("{");
+    const lastBrace = aiResponse.lastIndexOf("}");
 
-if (firstBrace !== -1 && lastBrace !== -1) {
-  aiResponse = aiResponse.substring(firstBrace, lastBrace + 1);
-}
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      aiResponse = aiResponse.substring(firstBrace, lastBrace + 1);
+    }
 
-aiResponse = aiResponse.replace(/,\s*([}\]])/g, "$1");
+    aiResponse = aiResponse.replace(/,\s*([}\]])/g, "$1");
 
-const parsedResponse = JSON.parse(aiResponse);
+    let parsedResponse;
+
+    try {
+      parsedResponse = JSON.parse(aiResponse);
+    } catch (parseError) {
+      console.log("JSON PARSE ERROR:", parseError.message);
+      console.log("RAW AI RESPONSE:", aiResponse);
+
+      return res.status(500).json({
+        success: false,
+        message: "AI returned invalid JSON. Please try again.",
+      });
+    }
+
+    const makeString = (value) => {
+      if (!value) return "";
+      if (typeof value === "string") return value;
+      if (Array.isArray(value)) return value.map(makeString).join("\n");
+      if (typeof value === "object") {
+        return (
+          value.text ||
+          value.title ||
+          value.description ||
+          value.caption ||
+          value.content ||
+          JSON.stringify(value)
+        );
+      }
+      return String(value);
+    };
+
+    const makeArray = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.map(makeString);
+      return [makeString(value)];
+    };
+
+    const safeResponse = {
+      linkedin: makeString(parsedResponse.linkedin),
+      twitter: makeArray(parsedResponse.twitter),
+      instagram: makeString(parsedResponse.instagram),
+      threads: makeArray(parsedResponse.threads),
+      hooks: makeArray(parsedResponse.hooks),
+      hashtags: makeArray(parsedResponse.hashtags),
+      scores: {
+        readability: Number(parsedResponse.scores?.readability) || 0,
+        engagement: Number(parsedResponse.scores?.engagement) || 0,
+        virality: Number(parsedResponse.scores?.virality) || 0,
+      },
+      suggestions: makeArray(parsedResponse.suggestions),
+    };
 
     res.json({
       success: true,
-      data: parsedResponse,
+      data: safeResponse,
     });
   } catch (error) {
     console.log("ERROR:", error.message);
 
     res.status(500).json({
       success: false,
-      message: "AI generation failed. Please try again.",
+      message: error.message,
     });
   }
 });
