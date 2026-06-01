@@ -54,6 +54,7 @@ STRICT RULES:
 5. Threads content must go ONLY inside "threads".
 6. If a platform is not selected, return an empty string or empty array for it.
 7. Always include all keys exactly as shown below.
+8. Do not use trailing commas in JSON arrays or objects.
 
 Return JSON in this exact structure:
 
@@ -96,9 +97,21 @@ Generate:
 
     let aiResponse = completion.choices[0].message.content.trim();
 
-    aiResponse = aiResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+aiResponse = aiResponse
+  .replace(/```json/g, "")
+  .replace(/```/g, "")
+  .trim();
 
-    const parsedResponse = JSON.parse(aiResponse);
+const firstBrace = aiResponse.indexOf("{");
+const lastBrace = aiResponse.lastIndexOf("}");
+
+if (firstBrace !== -1 && lastBrace !== -1) {
+  aiResponse = aiResponse.substring(firstBrace, lastBrace + 1);
+}
+
+aiResponse = aiResponse.replace(/,\s*([}\]])/g, "$1");
+
+const parsedResponse = JSON.parse(aiResponse);
 
     res.json({
       success: true,
