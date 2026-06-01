@@ -2,6 +2,29 @@ import { useState } from "react";
 import { jsPDF } from "jspdf";
 import "./App.css";
 
+const renderOutputText = (item) => {
+  if (!item) return "";
+
+  if (typeof item === "string") return item;
+
+  if (Array.isArray(item)) {
+    return item.map(renderOutputText).join("\n");
+  }
+
+  if (typeof item === "object") {
+    return (
+      item.text ||
+      item.title ||
+      item.description ||
+      item.caption ||
+      item.content ||
+      JSON.stringify(item)
+    );
+  }
+
+  return String(item);
+};
+
 function App() {
   const [content, setContent] = useState("");
   const [tone, setTone] = useState("Professional");
@@ -190,19 +213,7 @@ function App() {
     return ` ${count} characters`;
   };
 
-  const renderText = (item) => {
-  if (!item) return "";
-
-  if (typeof item === "string") return item;
-
-  if (typeof item === "object") {
-    return (
-      item.text || item.title || item.caption || item.content || JSON.stringify(item)
-    );
-  }
-
-  return String(item);
-};
+  const renderText = (item) => renderOutputText(item);
 
   return (
     <div className="app">
@@ -367,7 +378,7 @@ function App() {
                     title="LinkedIn Post"
                     content={result.linkedin}
                     meta={getCharStatus("LinkedIn", result.linkedin)}
-                    onCopy={() => copyText(result.linkedin)}
+                    onCopy={copyText}
                   />
                 )}
 
@@ -395,7 +406,7 @@ function App() {
                     title="Instagram Caption"
                     content={result.instagram}
                     meta={getCharStatus("Instagram", result.instagram)}
-                    onCopy={() => copyText(result.instagram)}
+                    onCopy={copyText}
                   />
                 )}
                 {result.threads && result.threads.length > 0 && (
@@ -491,6 +502,8 @@ function App() {
 }
 
 function OutputCard({ title, content, meta, onCopy }) {
+  const safeContent = renderOutputText(content);
+
   return (
     <div className="output-card">
       <div className="output-header">
@@ -499,11 +512,11 @@ function OutputCard({ title, content, meta, onCopy }) {
         <div className="header-actions">
           {meta && <span className="content-meta">{meta}</span>}
 
-          <button onClick={onCopy}>Copy</button>
+          <button onClick={() => onCopy(safeContent)}>Copy</button>
         </div>
       </div>
 
-      <p>{content}</p>
+      <p>{safeContent}</p>
     </div>
   );
 }
